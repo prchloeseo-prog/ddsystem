@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dear Dilly — 원가 관리 v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#1B3A5C; --teal:#2E7D6B; --purple:#7B5EA7; --red:#C0392B;
+  --orange:#E67E22; --bg:#F0F2F5; --white:#fff; --border:#E8ECF0;
+  --text:#1a1a2e; --muted:#9AA3AE;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy),var(--teal));padding:20px 24px 0;box-shadow:0 4px 20px rgba(27,58,92,.25);position:sticky;top:0;z-index:100;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:4px;text-transform:uppercase;margin-bottom:3px;}
+.brand-title{font-size:20px;font-weight:800;color:#fff;}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn-h{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:9px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600;transition:background .2s;font-family:inherit;}
+.btn-h:hover{background:rgba(255,255,255,.22);}
+.btn-h-main{background:rgba(255,255,255,.95);border:none;color:var(--navy);border-radius:9px;padding:7px 16px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;}
+.tabs{display:flex;gap:4px;}
+.tab-btn{background:transparent;border:none;color:rgba(255,255,255,.65);border-radius:10px 10px 0 0;padding:9px 20px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .2s;}
+.tab-btn.active{background:#fff;color:var(--navy);font-weight:700;}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 24px;background:#fff;border-bottom:1px solid var(--border);}
+.stat-card{padding:11px 14px;background:var(--bg);border-radius:10px;}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:500;}
+.stat-value{font-size:15px;font-weight:800;}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 24px;background:#fff;border-bottom:1px solid var(--border);}
+.search-wrap{flex:1;min-width:180px;position:relative;}
+.search-wrap input{width:100%;padding:8px 12px 8px 36px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;transition:border .2s;}
+.search-wrap input:focus{border-color:var(--teal);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+.filter-sel{padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-family:inherit;background:#fff;cursor:pointer;color:#444;outline:none;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;background:#fff;}
+table{width:100%;border-collapse:collapse;min-width:1480px;font-size:12px;}
+.th-group{padding:6px 8px;text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;color:#fff;}
+.th-order{background:var(--navy);}
+.th-in{background:var(--teal);}
+.th-cost{background:var(--purple);}
+.th-price{background:var(--red);}
+.th-action{background:#444;}
+thead tr:nth-child(2) th{padding:7px 6px;font-size:11px;font-weight:600;white-space:nowrap;border-bottom:2px solid;text-align:center;}
+.ch-order{background:rgba(27,58,92,.07);color:var(--navy);border-color:rgba(27,58,92,.2);}
+.ch-in{background:rgba(46,125,107,.07);color:var(--teal);border-color:rgba(46,125,107,.2);}
+.ch-cost{background:rgba(123,94,167,.07);color:var(--purple);border-color:rgba(123,94,167,.2);}
+.ch-price{background:rgba(192,57,43,.07);color:var(--red);border-color:rgba(192,57,43,.2);}
+.ch-action{background:#f5f5f5;color:#888;border-color:#ddd;}
+.auto-col::after{content:' 🔄';font-size:9px;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:hover{background:#f7f9fc;}
+tbody tr:nth-child(even){background:#fafbfc;}
+tbody tr:nth-child(even):hover{background:#f0f4f8;}
+td{padding:8px 6px;vertical-align:middle;}
+td.right{text-align:right;}
+td.center{text-align:center;}
+.td-product{font-weight:600;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.td-note{color:#888;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td-muted{color:#ccc;}
+.td-auto{color:var(--red);font-weight:700;}
+.td-payment{color:var(--purple);font-weight:700;}
+.badge-margin{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.bg-green{background:#e8f5e9;color:#1B5E20;}
+.bg-yellow{background:#fff8e1;color:#F57F17;}
+.bg-orange{background:#fff3e0;color:#E65100;}
+.bg-red{background:#ffebee;color:#b71c1c;}
+.btn-edit,.btn-del{padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.btn-edit{border:1px solid var(--border);background:#fff;color:var(--navy);}
+.btn-edit:hover{background:#EEF2FF;}
+.btn-del{border:1px solid #ffd0d0;background:#fff8f8;color:var(--red);margin-left:3px;}
+.btn-del:hover{background:#ffebee;}
+.empty-row td{text-align:center;padding:40px;color:var(--muted);font-size:14px;}
+
+/* MASTER TAG */
+.master-tag{display:inline-block;background:#e8f5e9;color:var(--teal);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;}
+
+/* MEMORY + NOTE */
+.bottom-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 24px;background:#fff;border-top:1px solid var(--border);}
+.memory-chip{font-size:11px;background:#f3e8ff;color:var(--purple);padding:2px 9px;border-radius:20px;font-weight:600;}
+.formula-note{padding:8px 24px 12px;font-size:11px;color:#bbb;background:#fff;}
+
+/* ── MASTER TAB ── */
+.master-wrap{padding:20px 24px;}
+.master-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.master-search{flex:1;min-width:160px;padding:8px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;outline:none;}
+.master-search:focus{border-color:var(--teal);}
+.btn-master-add{background:var(--navy);color:#fff;border:none;border-radius:9px;padding:8px 18px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;}
+.master-grid{display:grid;gap:10px;}
+.master-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:center;}
+.mc-label{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500;}
+.mc-value{font-size:13px;font-weight:600;}
+.mc-auto{color:var(--red);font-size:14px;font-weight:800;}
+.mc-actions{display:flex;gap:4px;}
+.master-head-row{background:linear-gradient(135deg,var(--navy),var(--teal));border-radius:10px;padding:8px 18px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:10px;color:#fff;font-size:11px;font-weight:700;margin-bottom:6px;}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:20px;width:100%;max-width:760px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.28);transform:translateY(20px);transition:transform .25s;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:#fff;border-radius:20px 20px 0 0;z-index:1;}
+.modal-title{font-size:15px;font-weight:700;color:var(--navy);}
+.modal-hint{font-size:11px;color:var(--muted);margin-top:2px;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#bbb;line-height:1;}
+.modal-body{padding:18px 22px;}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:#fff;border-radius:0 0 20px 20px;}
+
+/* Master match banner */
+.master-match{background:linear-gradient(135deg,#e8f5e9,#e3f2fd);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;border-left:3px solid var(--teal);display:none;}
+.master-match.show{display:block;}
+.master-match strong{color:var(--teal);}
+
+/* Form */
+.form-group{margin-bottom:18px;}
+.form-group-title{font-size:11px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.group-bar{height:3px;width:16px;border-radius:2px;display:inline-block;}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;}
+.form-field label{font-size:11px;color:#888;display:block;margin-bottom:2px;font-weight:500;}
+.form-field label.auto-lbl{color:var(--teal);font-weight:700;}
+.form-field label.master-lbl{color:var(--orange);font-weight:700;}
+.form-field input,.form-field select{width:100%;padding:8px 9px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border .2s;}
+.form-field input:focus,.form-field select:focus{border-color:var(--teal);}
+.form-field input.auto-input{background:#f0fff8;border-color:#b2dfdb;color:#1B5E20;font-weight:600;}
+.form-field input.master-input{background:#fff8f0;border-color:#f0c070;color:#7a4500;font-weight:600;}
+
+/* Order qty hint */
+.order-qty-hint{font-size:11px;color:var(--orange);font-weight:700;margin-top:4px;}
+
+/* Calc preview */
+.calc-preview{background:#f8f9ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;}
+.calc-title{font-weight:700;color:var(--navy);margin-bottom:6px;font-size:11px;}
+.calc-flow{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.calc-chip{background:#E3F2FD;padding:3px 9px;border-radius:20px;font-size:11px;}
+.calc-chip.auto{background:#f0fff8;color:var(--teal);font-weight:700;}
+.calc-chip.final{background:#ffebee;color:var(--red);font-weight:700;}
+.margin-preview{background:linear-gradient(135deg,#f0f7ff,#f0fff8);border-radius:10px;padding:12px 18px;display:flex;gap:20px;flex-wrap:wrap;}
+.pv-label{font-size:11px;color:#888;margin-bottom:1px;}
+.pv-val{font-size:18px;font-weight:800;}
+
+/* Buttons */
+.btn-cancel{padding:9px 18px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:#666;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;}
+.btn-save{padding:9px 22px;border-radius:9px;border:none;background:var(--navy);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;}
+.btn-save:hover{background:#142c47;}
+
+/* Confirm */
+.confirm-box{background:#fff;border-radius:16px;padding:22px;width:300px;box-shadow:0 10px 40px rgba(0,0,0,.2);}
+.confirm-box h3{font-size:15px;margin-bottom:6px;}
+.confirm-box p{font-size:13px;color:#888;margin-bottom:18px;}
+.confirm-btns{display:flex;gap:10px;}
+.btn-cc{flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:13px;font-family:inherit;}
+.btn-cd{flex:1;padding:9px;border-radius:9px;border:none;background:var(--red);color:#fff;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;}
+
+/* Responsive */
+@media(max-width:640px){.stats-bar{grid-template-columns:repeat(2,1fr);}.master-card,.master-head-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="brand-sub">dear dilly</div>
+      <div class="brand-title">📋 원가 관리 v2</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-h" onclick="exportCSV()">⬇ CSV</button>
+      <button id="btnAddRow" class="btn-h-main" onclick="openModal(null)">＋ 행 추가</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('cost')">📋 원가 입력</button>
+    <button class="tab-btn" onclick="switchTab('master')">📚 제품 마스터</button>
+  </div>
+</div>
+
+<!-- TAB: 원가 입력 -->
+<div id="tab-cost">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-label">총 행 수</div><div class="stat-value" style="color:var(--navy)" id="s-rows">—</div></div>
+    <div class="stat-card"><div class="stat-label">총 결제액</div><div class="stat-value" style="color:var(--purple)" id="s-pay">—</div></div>
+    <div class="stat-card"><div class="stat-label">총 공임합계</div><div class="stat-value" style="color:var(--teal)" id="s-labor">—</div></div>
+    <div class="stat-card"><div class="stat-label">평균 마진율</div><div class="stat-value" style="color:var(--red)" id="s-margin">—</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="제품명 / 옵션 / 입고처 검색..." oninput="renderTable()">
+    </div>
+    <select class="filter-sel" id="filterMonth" onchange="renderTable()">
+      <option value="">전체 월</option>
+      <option value="1/">1월</option>
+      <option value="2/">2월</option>
+      <option value="3/">3월</option>
+    </select>
+    <select class="filter-sel" id="sortSel" onchange="renderTable()">
+      <option value="id_asc">날짜 순</option>
+      <option value="mfgCost_desc">제조원가 높은순</option>
+      <option value="payment_desc">결제액 높은순</option>
+      <option value="marginRate_desc">마진율 높은순</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col style="width:58px"><col style="width:130px"><col style="width:70px">
+        <col style="width:52px"><col style="width:62px"><col style="width:170px">
+        <col style="width:78px"><col style="width:88px">
+        <col style="width:62px"><col style="width:72px"><col style="width:115px">
+        <col style="width:62px"><col style="width:62px">
+        <col style="width:72px"><col style="width:82px"><col style="width:92px"><col style="width:72px">
+        <col style="width:82px"><col style="width:72px">
+        <col style="width:96px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="th-group th-order" colspan="8">발주</th>
+          <th class="th-group th-in" colspan="5">입고</th>
+          <th class="th-group th-cost" colspan="4">비용</th>
+          <th class="th-group th-price" colspan="2">원가</th>
+          <th class="th-group th-action">액션</th>
+        </tr>
+        <tr>
+          <th class="ch-order">날짜</th><th class="ch-order">제품</th><th class="ch-order">컬러/옵션</th>
+          <th class="ch-order">요척</th><th class="ch-order">제작수량</th><th class="ch-order">발주내용</th>
+          <th class="ch-order">단가</th><th class="ch-order">결제액</th>
+          <th class="ch-in">입고일</th><th class="ch-in">입고처</th><th class="ch-in">입고제품</th>
+          <th class="ch-in">옵션</th><th class="ch-in">입고수량</th>
+          <th class="ch-cost">공임</th><th class="ch-cost auto-col">공임합계</th>
+          <th class="ch-cost auto-col">원단가(요척)</th><th class="ch-cost">기타</th>
+          <th class="ch-price auto-col">제조원가</th><th class="ch-price">판매가</th>
+          <th class="ch-action">마진율 / 수정</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div class="bottom-bar">
+    <span style="font-size:11px;color:var(--muted);font-weight:600;">★ 요척 기억:</span>
+    <span id="memoryChips">—</span>
+  </div>
+  <div class="formula-note">🔄 원단가 = 단가×요척 &nbsp;|&nbsp; 공임합계 = 공임×입고수량 &nbsp;|&nbsp; 제조원가 = 원단가+공임+(기타÷입고수량) &nbsp;|&nbsp; 🟠 주황 라벨 = 마스터 자동완성</div>
+</div>
+
+<!-- TAB: 제품 마스터 -->
+<div id="tab-master" style="display:none;">
+  <div class="master-wrap">
+    <div class="master-toolbar">
+      <input type="text" class="master-search" id="masterSearch" placeholder="🔍 제품명 / 컬러 검색..." oninput="renderMaster()">
+      <button class="btn-master-add" onclick="openMasterModal(null)">＋ 마스터 추가</button>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:12px;color:#666;line-height:1.7;box-shadow:0 2px 6px rgba(0,0,0,.04)">
+      <strong style="color:var(--navy)">📚 제품 마스터란?</strong><br>
+      제품별 원단처·원단명·요척·공임을 등록해두면, 원가 입력 시 <strong>제품명+컬러 입력만으로 자동완성</strong>됩니다.<br>
+      최종원가 = (원단가×요척 + 공임 + 기타) × <span style="color:var(--red)">1.1 (VAT+10%)</span>
+    </div>
+    <div class="master-head-row">
+      <div>제품명 / 컬러</div><div>원단처 / 원단명</div>
+      <div>원단가·요척</div><div>공임처 / 공임</div>
+      <div>기타비용</div><div>최종원가 → 판매가</div><div>액션</div>
+    </div>
+    <div class="master-grid" id="masterGrid"></div>
+  </div>
+</div>
+
+<!-- COST ROW MODAL -->
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modalTitle">➕ 새 행 추가</div>
+        <div class="modal-hint">🟢 초록=자동계산 &nbsp; 🟠 주황=마스터 자동완성 &nbsp; 제품+컬러 입력 시 자동완성</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Master match banner -->
+      <div class="master-match" id="masterMatchBanner"></div>
+
+      <!-- 발주 -->
+      <div class="form-group">
+        <div class="form-group-title" style="color:var(--navy)">
+          <span class="group-bar" style="background:var(--navy)"></span> 발주 정보
+        </div>
+        <div class="form-grid">
+          <div class="form-field"><label>날짜</label><input id="f_date" type="text" placeholder="2/24"></div>
+          <div class="form-field">
+            <label>제품명</label>
+            <input id="f_product" type="text" placeholder="SS 고쟁이" oninput="onProductChange()" list="dl-products">
+            <datalist id="dl-products"></datalist>
+          </div>
+          <div class="form-field">
+            <label>컬러/옵션</label>
+            <input id="f_option" type="text" placeholder="파랑꽃 / M" oninput="onColorChange()" list="dl-colors">
+            <datalist id="dl-colors"></datalist>
+          </div>
+          <div class="form-field">
+            <label id="lbl_fabric" class="master-lbl">요척 🟠</label>
+            <input id="f_fabric" type="number" step="0.01" placeholder="0.7" oninput="autoCalc()">
+            <div class="order-qty-hint" id="orderQtyHint"></div>
+          </div>
+          <div class="form-field"><label>제작수량</label><input id="f_mfgQty" type="number" placeholder="100" oninput="autoCalc();updateOrderHint()"></div>
+          <div class="form-field" style="grid-column:span 2">
+            <label id="lbl_orderNote" class="master-lbl">발주내용 🟠</label>
+            <input id="f_orderNote" type="text" placeholder="아텍스 SP데이지-블/핑">
+          </div>
+          <div class="form-field">
+            <label id="lbl_unitPrice" class="master-lbl">단가(y당) 🟠</label>
+            <input id="f_unitPrice" type="number" placeholder="7000" oninput="autoCalc()">
+          </div>
+          <div class="form-field"><label>결제액</label><input id="f_payment" type="number" placeholder="36500"></div>
+        </div>
+      </div>
+
+      <!-- 입고 -->
+      <div class="form-group">
+        <div class="form-group-title" style="color:var(--teal)">
+          <span class="group-bar" style="background:var(--teal)"></span> 입고 정보
+        </div>
+        <div class="form-grid">
+          <div class="form-field"><label>입고일</label><input id="f_inDate" type="text" placeholder="3/15"></div>
+          <div class="form-field"><label>입고처</label><input id="f_inFrom" type="text" placeholder="성지"></div>
+          <div class="form-field"><label>입고제품</label><input id="f_inProduct" type="text"></div>
+          <div class="form-field"><label>입고옵션</label><input id="f_inOption" type="text"></div>
+          <div class="form-field"><label>입고수량</label><input id="f_inQty" type="number" placeholder="310" oninput="autoCalc()"></div>
+        </div>
+      </div>
+
+      <!-- 비용 -->
+      <div class="form-group">
+        <div class="form-group-title" style="color:var(--purple)">
+          <span class="group-bar" style="background:var(--purple)"></span> 비용 정보
+        </div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label id="lbl_labor" class="master-lbl">공임(개당) 🟠</label>
+            <input id="f_labor" type="number" placeholder="2500" oninput="autoCalc()">
+          </div>
+          <div class="form-field"><label class="auto-lbl">공임합계 🔄</label><input id="f_laborTotal" class="auto-input" readonly></div>
+          <div class="form-field"><label class="auto-lbl">원단가(요척) 🔄</label><input id="f_fabricCostYd" class="auto-input" readonly></div>
+          <div class="form-field">
+            <label id="lbl_other" class="master-lbl">기타비용 🟠</label>
+            <input id="f_other" type="number" placeholder="90" oninput="autoCalc()">
+          </div>
+        </div>
+      </div>
+
+      <!-- 원가 -->
+      <div class="form-group">
+        <div class="form-group-title" style="color:var(--red)">
+          <span class="group-bar" style="background:var(--red)"></span> 원가 정보
+        </div>
+        <div class="form-grid">
+          <div class="form-field"><label class="auto-lbl">제조원가 🔄</label><input id="f_mfgCost" class="auto-input" readonly></div>
+          <div class="form-field">
+            <label id="lbl_salePrice" class="master-lbl">판매가 🟠</label>
+            <input id="f_salePrice" type="number" placeholder="19000" oninput="autoCalc()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Calc flow -->
+      <div class="calc-preview">
+        <div class="calc-title">⚡ 자동계산 흐름</div>
+        <div class="calc-flow" id="calcFlow">—</div>
+      </div>
+
+      <!-- Margin preview -->
+      <div class="margin-preview" id="marginPreview" style="display:none">
+        <div><div class="pv-label">마진(개당)</div><div class="pv-val" id="pv-margin">—</div></div>
+        <div><div class="pv-label">마진율</div><div class="pv-val" id="pv-rate">—</div></div>
+        <div><div class="pv-label">총 공임합계</div><div class="pv-val" style="color:var(--purple)" id="pv-labor">—</div></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="saveRow()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- MASTER MODAL -->
+<div class="overlay" id="masterOverlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <div><div class="modal-title" id="masterModalTitle">📚 마스터 추가</div>
+        <div class="modal-hint">최종원가 = (원단가×요척 + 공임 + 기타) × 1.1</div></div>
+      <button class="modal-close" onclick="closeMasterModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <div class="form-grid">
+          <div class="form-field"><label>제품명</label><input id="m_product" type="text" placeholder="SS 고쟁이"></div>
+          <div class="form-field"><label>컬러</label><input id="m_color" type="text" placeholder="파랑꽃"></div>
+          <div class="form-field"><label>사이즈 범위</label><input id="m_size" type="text" placeholder="아기M/L/XL, 엄마"></div>
+          <div class="form-field"><label>원단처</label><input id="m_vendor" type="text" placeholder="아텍스" oninput="calcMasterPreview()"></div>
+          <div class="form-field"><label>원단명</label><input id="m_fabricName" type="text" placeholder="SP데이지-블/핑"></div>
+          <div class="form-field"><label>원단가(/y)</label><input id="m_unitPrice" type="number" placeholder="7000" oninput="calcMasterPreview()"></div>
+          <div class="form-field"><label>요척(y)</label><input id="m_fabric" type="number" step="0.01" placeholder="0.7" oninput="calcMasterPreview()"></div>
+          <div class="form-field"><label>공임처</label><input id="m_laborVendor" type="text" placeholder="성지"></div>
+          <div class="form-field"><label>공임(개당)</label><input id="m_labor" type="number" placeholder="2500" oninput="calcMasterPreview()"></div>
+          <div class="form-field"><label>기타비용(개당)</label><input id="m_other" type="number" placeholder="90" oninput="calcMasterPreview()"></div>
+          <div class="form-field"><label>판매가</label><input id="m_salePrice" type="number" placeholder="19000" oninput="calcMasterPreview()"></div>
+          <div class="form-field">
+            <label>VAT+10% 적용</label>
+            <select id="m_vatApply" onchange="calcMasterPreview()" style="padding:8px 9px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;outline:none;">
+              <option value="1">✅ 적용 (×1.1)</option>
+              <option value="0">❌ 미적용</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="margin-preview" id="masterPreview" style="display:none">
+        <div><div class="pv-label">원단원가/개</div><div class="pv-val" id="mp-fab">—</div></div>
+        <div><div class="pv-label">최종원가(P)</div><div class="pv-val" style="color:var(--red)" id="mp-cost">—</div></div>
+        <div><div class="pv-label">마진율</div><div class="pv-val" id="mp-rate" style="color:var(--teal)">—</div></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeMasterModal()">취소</button>
+      <button class="btn-save" onclick="saveMaster()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>정말 삭제할까요?</h3>
+    <p>삭제하면 되돌릴 수 없어요.</p>
+    <div class="confirm-btns">
+      <button class="btn-cc" onclick="closeConfirm()">취소</button>
+      <button class="btn-cd" onclick="doDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 제품 마스터 SEED ────────────────────────────────────────────
+const MASTER_SEED = [
+  { id:1,  product:"SS 고쟁이",    color:"파랑꽃",  size:"아기M/L/XL, 엄마",  vendor:"아텍스",  fabricName:"SP데이지-블/핑",  unitPrice:7000, fabric:0.7, laborVendor:"성지", labor:2500, other:90, vatApply:true, salePrice:19000 },
+  { id:2,  product:"SS 고쟁이",    color:"연두꽃",  size:"아기M/L/XL, 엄마",  vendor:"아텍스",  fabricName:"SP환타-그린",     unitPrice:7000, fabric:0.7, laborVendor:"성지", labor:2500, other:90, vatApply:true, salePrice:19000 },
+  { id:3,  product:"SS 고쟁이",    color:"빨강꽃",  size:"아기M/L/XL, 엄마",  vendor:"아텍스",  fabricName:"SP데이지-핑/노",  unitPrice:7000, fabric:0.7, laborVendor:"성지", labor:2500, other:90, vatApply:true, salePrice:19000 },
+  { id:4,  product:"SS 고쟁이",    color:"노랑꽃",  size:"아기M/L/XL, 엄마",  vendor:"아텍스",  fabricName:"SP환타-노랑",     unitPrice:7000, fabric:0.7, laborVendor:"성지", labor:2500, other:90, vatApply:true, salePrice:19000 },
+  { id:5,  product:"SS 고쟁이",    color:"핑크꽃",  size:"아기M/L/XL, 엄마",  vendor:"아텍스",  fabricName:"SP환타-핑크",     unitPrice:7000, fabric:0.7, laborVendor:"성지", labor:2500, other:90, vatApply:true, salePrice:19000 },
+  { id:6,  product:"SS 고쟁이 성인",color:"파랑꽃",size:"성인",              vendor:"아텍스",  fabricName:"SP데이지-블/핑",  unitPrice:7000, fabric:1.2, laborVendor:"성지", labor:3500, other:90, vatApply:true, salePrice:23000 },
+  { id:7,  product:"조리원잠옷",   color:"",        size:"",                  vendor:"시온텍스",fabricName:"워싱광목20수",   unitPrice:3200, fabric:2.5, laborVendor:"성지", labor:11000,other:800,vatApply:false,salePrice:45000 },
+  { id:8,  product:"배쓰가운",     color:"화이트",  size:"S",                 vendor:"현텍스",  fabricName:"양타올",          unitPrice:8800, fabric:0.8, laborVendor:"성지", labor:6500, other:1200,vatApply:false,salePrice:45000 },
+  { id:9,  product:"양머리 도넛터번",color:"",      size:"S/M/L",             vendor:"알레",    fabricName:"CVC테리03 백아이",unitPrice:6500, fabric:0.2, laborVendor:"성지", labor:1500, other:0,  vatApply:false,salePrice:16000 },
+  { id:10, product:"인어스와들",   color:"민트",    size:"",                  vendor:"충남",    fabricName:"텐셀스판싱글K407",unitPrice:5900, fabric:0,   laborVendor:"형제재단",labor:700, other:1000,vatApply:false,salePrice:19800 },
+];
+
+// ── 원가 입력 SEED ───────────────────────────────────────────────
+const SEED = [
+  { id:1,  date:"1/6",  product:"조리원잠옷",       option:"",        fabric:2.5,  mfgQty:16,  orderNote:"시온텍스 워싱광목20수 오리발 네추럴",  unitPrice:3200, payment:128000, inDate:"1/14", inFrom:"성지",  inProduct:"조리원잠옷",     inOption:"",    inQty:17,  labor:11000, laborTotal:187000, fabricCostYd:8541, other:800,  mfgCost:20341, salePrice:45000 },
+  { id:2,  date:"1/6",  product:"호피 내복",         option:"S",       fabric:0.825,mfgQty:74,  orderNote:"아텍스 후스판/3도호피 크림",           unitPrice:0,    payment:0,      inDate:"",     inFrom:"",      inProduct:"호피 내복",       inOption:"S",   inQty:74,  labor:5600,  laborTotal:0,      fabricCostYd:0,    other:900,  mfgCost:17150, salePrice:25000 },
+  { id:3,  date:"1/9",  product:"양머리 도넛터번",   option:"",        fabric:0.2,  mfgQty:30,  orderNote:"알레 CVC테리03 백아이(11)",            unitPrice:6500, payment:39000,  inDate:"",     inFrom:"평택",  inProduct:"양머리 도넛터번", inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:1600, mfgCost:0,     salePrice:16000 },
+  { id:4,  date:"1/9",  product:"배쓰가운",          option:"S",       fabric:0.8,  mfgQty:40,  orderNote:"현텍스 화이트",                        unitPrice:8800, payment:352000, inDate:"",     inFrom:"",      inProduct:"배쓰가운",        inOption:"S",   inQty:0,   labor:8000,  laborTotal:0,      fabricCostYd:0,    other:1200, mfgCost:17200, salePrice:45000 },
+  { id:5,  date:"1/21", product:"치타 내복",         option:"M",       fabric:0.825,mfgQty:38,  orderNote:"아텍스 치타40후Sp/호피-베이지",        unitPrice:0,    payment:154000, inDate:"2/3",  inFrom:"성지",  inProduct:"치타 내복",       inOption:"M",   inQty:38,  labor:4000,  laborTotal:152000, fabricCostYd:4053, other:0,    mfgCost:8053,  salePrice:25000 },
+  { id:51, date:"1/21", product:"호피 내복",         option:"M",       fabric:0.825,mfgQty:25,  orderNote:"아텍스 후스판/3도호피 크림",           unitPrice:0,    payment:154000, inDate:"",     inFrom:"",      inProduct:"호피 내복",       inOption:"M",   inQty:40,  labor:4000,  laborTotal:160000, fabricCostYd:3850, other:0,    mfgCost:7850,  salePrice:25000 },
+  { id:52, date:"1/21", product:"꽃분이 내복",       option:"M",       fabric:0.825,mfgQty:25,  orderNote:"아텍스 SP데이지 핑/노",               unitPrice:0,    payment:154000, inDate:"",     inFrom:"",      inProduct:"꽃분이 내복",     inOption:"M",   inQty:34,  labor:4000,  laborTotal:136000, fabricCostYd:4529, other:0,    mfgCost:8529,  salePrice:29000 },
+  { id:6,  date:"1/26", product:"블랭킷",            option:"민트",    fabric:10,   mfgQty:10,  orderNote:"충남 K42 로얄민트",                   unitPrice:590,  payment:59000,  inDate:"",     inFrom:"형제",  inProduct:"블랭킷",          inOption:"민트",inQty:10,  labor:4720,  laborTotal:0,      fabricCostYd:1500, other:1500, mfgCost:7220,  salePrice:25000 },
+  { id:7,  date:"1/30", product:"밴드",              option:"치타",    fabric:0.15, mfgQty:70,  orderNote:"아텍스 치타40후Sp/호피-베이지",        unitPrice:0,    payment:43500,  inDate:"",     inFrom:"평택",  inProduct:"밴드",            inOption:"치타",inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:10000 },
+  { id:8,  date:"2/3",  product:"차병원 가운",       option:"XS",      fabric:0.8,  mfgQty:10,  orderNote:"현텍스 크림 #988",                    unitPrice:8800, payment:70400,  inDate:"2/12", inFrom:"성지",  inProduct:"차병원 가운",     inOption:"XS",  inQty:10,  labor:6500,  laborTotal:65000,  fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:35000 },
+  { id:9,  date:"2/3",  product:"스와들(차병원)",    option:"",        fabric:1.0,  mfgQty:16,  orderNote:"충남 베이지 K453",                    unitPrice:5900, payment:0,      inDate:"",     inFrom:"형제",  inProduct:"스와들",          inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:15000,mfgCost:0,     salePrice:18000 },
+  { id:10, date:"2/3",  product:"배쓰가운",          option:"M",       fabric:1.0,  mfgQty:10,  orderNote:"현텍스 화이트",                        unitPrice:8800, payment:88000,  inDate:"",     inFrom:"성지",  inProduct:"배쓰가운",        inOption:"M",   inQty:14,  labor:6500,  laborTotal:91000,  fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:35000 },
+  { id:11, date:"2/3",  product:"배쓰터번 오리지널", option:"S",       fabric:0.2,  mfgQty:30,  orderNote:"화이트",                              unitPrice:8800, payment:52800,  inDate:"",     inFrom:"",      inProduct:"오리지널",        inOption:"S",   inQty:28,  labor:1500,  laborTotal:42000,  fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:15000 },
+  { id:12, date:"2/5",  product:"양머리 도넛터번",   option:"S",       fabric:0.2,  mfgQty:100, orderNote:"알레 CVC테리03 백아이(11)",            unitPrice:6500, payment:130000, inDate:"2/12", inFrom:"성지",  inProduct:"양머리",          inOption:"S",   inQty:80,  labor:1500,  laborTotal:120000, fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:16000 },
+  { id:13, date:"2/5",  product:"양머리 도넛터번",   option:"L",       fabric:0.2,  mfgQty:40,  orderNote:"알레 CVC테리03 백아이(11)",            unitPrice:6500, payment:0,      inDate:"2/12", inFrom:"성지",  inProduct:"양머리",          inOption:"L",   inQty:40,  labor:1500,  laborTotal:60000,  fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:16000 },
+  { id:14, date:"2/6",  product:"고무줄(부자재)",    option:"양머리용",fabric:0,    mfgQty:0,   orderNote:"에스비15mm+꼬임6골 백색",             unitPrice:0,    payment:76000,  inDate:"2/19", inFrom:"성지",  inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:847000, fabricCostYd:0,    other:15000,mfgCost:0,     salePrice:0 },
+  { id:15, date:"2/9",  product:"웨딩베일 터번",     option:"화이트",  fabric:0,    mfgQty:0,   orderNote:"다섬 캉캉7크림+캉캉검",               unitPrice:15500,payment:31000,  inDate:"",     inFrom:"사무실",inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:0 },
+  { id:16, date:"2/9",  product:"애착인형",          option:"",        fabric:0.21, mfgQty:10,  orderNote:"현텍스 오가닉 #58",                   unitPrice:9700, payment:97000,  inDate:"",     inFrom:"평택",  inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:4500, mfgCost:0,     salePrice:0 },
+  { id:17, date:"2/10", product:"치타 터번",         option:"",        fabric:0,    mfgQty:0,   orderNote:"아텍스 치타40후Sp+SP데이지블핑/핑노",  unitPrice:0,    payment:75300,  inDate:"",     inFrom:"사무실",inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:0 },
+  { id:18, date:"2/10", product:"크리미도넛밴드",    option:"",        fabric:0,    mfgQty:0,   orderNote:"NB로제스판2089크림+충남모달30수P320/P319",unitPrice:0,  payment:0,      inDate:"",     inFrom:"",      inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:9500 },
+  { id:19, date:"2/19", product:"조리원잠옷",        option:"",        fabric:2.5,  mfgQty:60,  orderNote:"",                                    unitPrice:3200, payment:532400, inDate:"3/3",  inFrom:"성지",  inProduct:"조리원잠옷",      inOption:"",    inQty:62,  labor:11000, laborTotal:682000, fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:45000 },
+  { id:20, date:"3/2",  product:"밸리러비",          option:"",        fabric:0,    mfgQty:0,   orderNote:"고리부자재 예감30*120=36,000/선그립",  unitPrice:140,  payment:7700,   inDate:"3/2",  inFrom:"평택",  inProduct:"밸리러비",        inOption:"",    inQty:59,  labor:4000,  laborTotal:236000, fabricCostYd:0,    other:36000,mfgCost:0,     salePrice:39000 },
+  { id:21, date:"3/4",  product:"레트로수모(성인)",  option:"",        fabric:0.6,  mfgQty:0,   orderNote:"유니크15 크림+줄리소다 검정",          unitPrice:6500, payment:52000,  inDate:"",     inFrom:"형제",  inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:0 },
+  { id:22, date:"3/4",  product:"플랫터번",          option:"F",       fabric:0.1,  mfgQty:0,   orderNote:"다원 마들렌스판1628 파스텔핑크/백아이/검정/미베이지",unitPrice:4370,payment:51800,inDate:"",inFrom:"택배",  inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:15000,mfgCost:0,     salePrice:15000 },
+  { id:23, date:"3/4",  product:"트위스트밴드",      option:"치타",    fabric:0,    mfgQty:0,   orderNote:"아텍스 치타40후Sp+SP데이지블핑/핑노",  unitPrice:5700, payment:70000,  inDate:"",     inFrom:"사무실",inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:10000 },
+  { id:24, date:"3/5",  product:"페일로즈(원단)",    option:"",        fabric:0,    mfgQty:0,   orderNote:"충남 페일로즈 K4295590",               unitPrice:5900, payment:29500,  inDate:"",     inFrom:"",      inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:0 },
+  { id:25, date:"3/5",  product:"수영모자",          option:"쉬머핑크",fabric:0,    mfgQty:0,   orderNote:"줄리",                                unitPrice:3700, payment:21000,  inDate:"",     inFrom:"사무실",inProduct:"",                inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,    mfgCost:0,     salePrice:0 },
+  // ── 2/24 SS 고쟁이 ──
+  { id:26, date:"2/24", product:"SS 고쟁이",         option:"빨강꽃",  fabric:0.7,  mfgQty:300, orderNote:"아텍스 프리오더 SP데이지-핑/노",       unitPrice:7000, payment:16500,  inDate:"",     inFrom:"",      inProduct:"아기/엄마고쟁이", inOption:"아기M76/L102/XL110, 엄마12", inQty:300, labor:2500, laborTotal:0, fabricCostYd:4900, other:90, mfgCost:8239, salePrice:19000 },
+  { id:27, date:"2/24", product:"SS 고쟁이",         option:"파랑꽃",  fabric:0.7,  mfgQty:310, orderNote:"아텍스 SP데이지-블/핑",               unitPrice:7000, payment:36500,  inDate:"",     inFrom:"",      inProduct:"아기/엄마고쟁이", inOption:"아기M125/L121/XL61, 엄마3",  inQty:310, labor:2500, laborTotal:0, fabricCostYd:4900, other:90, mfgCost:8239, salePrice:19000 },
+  { id:28, date:"2/24", product:"SS 고쟁이",         option:"노랑꽃",  fabric:0.7,  mfgQty:0,   orderNote:"아텍스 SP환타-노랑",                  unitPrice:7000, payment:16500,  inDate:"",     inFrom:"",      inProduct:"",                inOption:"",    inQty:0,   labor:2500,  laborTotal:0,      fabricCostYd:4900, other:90, mfgCost:8239, salePrice:19000 },
+  { id:29, date:"2/24", product:"SS 고쟁이",         option:"연두꽃",  fabric:0.7,  mfgQty:0,   orderNote:"아텍스 SP환타-그린",                  unitPrice:7000, payment:6500,   inDate:"",     inFrom:"",      inProduct:"",                inOption:"",    inQty:0,   labor:2500,  laborTotal:0,      fabricCostYd:4900, other:90, mfgCost:8239, salePrice:19000 },
+  { id:30, date:"2/24", product:"SS 고쟁이",         option:"핑크꽃",  fabric:0.7,  mfgQty:0,   orderNote:"아텍스 SP환타-핑크",                  unitPrice:7000, payment:16500,  inDate:"",     inFrom:"",      inProduct:"",                inOption:"",    inQty:0,   labor:2500,  laborTotal:0,      fabricCostYd:4900, other:90, mfgCost:8239, salePrice:19000 },
+  { id:31, date:"2/24", product:"도넛터번",           option:"",        fabric:0.2,  mfgQty:0,   orderNote:"2/24 발주",                           unitPrice:6500, payment:0,      inDate:"",     inFrom:"",      inProduct:"도넛터번",        inOption:"",    inQty:0,   labor:1500,  laborTotal:0,      fabricCostYd:0,    other:0,  mfgCost:0,     salePrice:16000 },
+  { id:32, date:"2/24", product:"농장모자",           option:"",        fabric:0,    mfgQty:0,   orderNote:"2/24 발주",                           unitPrice:0,    payment:0,      inDate:"",     inFrom:"",      inProduct:"농장모자",        inOption:"",    inQty:0,   labor:0,     laborTotal:0,      fabricCostYd:0,    other:0,  mfgCost:0,     salePrice:22000 },
+];
+
+// ── State ─────────────────────────────────────────────────────────
+let rows    = JSON.parse(localStorage.getItem('dd_cost_rows2') || 'null') || SEED.map(r=>({...r}));
+let masters = JSON.parse(localStorage.getItem('dd_master2')    || 'null') || MASTER_SEED.map(m=>({...m}));
+let fabricMemory = {};
+let editingId = null, deletingId = null, deletingType = null;
+let masterEditId = null;
+let nextRowId    = Math.max(...rows.map(r=>r.id), 100) + 1;
+let nextMasterId = Math.max(...masters.map(m=>m.id), 20) + 1;
+
+function saveRows()    { localStorage.setItem('dd_cost_rows2', JSON.stringify(rows)); }
+function saveMasters() { localStorage.setItem('dd_master2', JSON.stringify(masters)); }
+
+// ── Tab switch ────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-cost').style.display   = tab==='cost'   ? '' : 'none';
+  document.getElementById('tab-master').style.display = tab==='master' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active', i===(tab==='cost'?0:1)));
+  document.getElementById('btnAddRow').style.display  = tab==='cost' ? '' : 'none';
+  if (tab==='master') renderMaster();
+}
+
+// ── Calc helpers ──────────────────────────────────────────────────
+const n = v => parseFloat(v)||0;
+function recalc(f) {
+  const fabricCostYd = n(f.unitPrice)>0 && n(f.fabric)>0 ? Math.round(n(f.unitPrice)*n(f.fabric)) : n(f.fabricCostYd)||0;
+  const laborTotal   = n(f.labor)>0 && n(f.inQty)>0 ? n(f.labor)*n(f.inQty) : n(f.laborTotal)||0;
+  const otherPer     = n(f.inQty)>0 ? Math.round(n(f.other)/n(f.inQty)) : n(f.other);
+  const mfgCost      = (fabricCostYd>0||n(f.labor)>0) ? fabricCostYd+n(f.labor)+otherPer : n(f.mfgCost)||0;
+  return {...f, fabricCostYd, laborTotal, mfgCost};
+}
+function calcMasterCost(m) {
+  const fab  = Math.round(n(m.unitPrice)*n(m.fabric));
+  const sub  = fab + n(m.labor) + n(m.other);
+  return m.vatApply ? Math.round(sub*1.1) : sub;
+}
+function lookupMaster(product, color) {
+  return masters.find(m =>
+    m.product.trim().toLowerCase() === product.trim().toLowerCase() &&
+    (m.color.trim().toLowerCase() === color.trim().toLowerCase() || !color.trim())
+  );
+}
+
+// ── Fabric memory ─────────────────────────────────────────────────
+function buildMemory() {
+  fabricMemory = {};
+  rows.forEach(r=>{ if(r.product&&r.fabric>0) fabricMemory[r.product]=r.fabric; });
+}
+buildMemory();
+function renderMemory() {
+  const el = document.getElementById('memoryChips');
+  const e  = Object.entries(fabricMemory);
+  el.innerHTML = e.length ? e.map(([p,f])=>`<span class="memory-chip">★ ${p} ${f}y</span>`).join(' ') : '—';
+}
+
+// ── Color/margin helpers ──────────────────────────────────────────
+function marginColor(r) {
+  if(r===null||isNaN(r)) return '#aaa';
+  if(r<0)   return '#b71c1c';
+  if(r<0.3) return '#E65100';
+  if(r<0.5) return '#43A047';
+  return '#1B5E20';
+}
+function badgeClass(r) {
+  if(r===null||isNaN(r)) return '';
+  if(r<0)   return 'bg-red';
+  if(r<0.3) return 'bg-orange';
+  if(r<0.5) return 'bg-yellow';
+  return 'bg-green';
+}
+const won = v => (Math.round(v)||0).toLocaleString('ko-KR')+'원';
+const pct = v => (v*100).toFixed(1)+'%';
+
+// ── Render table ──────────────────────────────────────────────────
+function renderTable() {
+  const q     = document.getElementById('searchInput').value.trim().toLowerCase();
+  const month = document.getElementById('filterMonth').value;
+  const sort  = document.getElementById('sortSel').value;
+
+  let list = rows.map(r=>recalc(r));
+  if(q)     list = list.filter(r=>r.product.toLowerCase().includes(q)||(r.option||'').toLowerCase().includes(q)||(r.inFrom||'').toLowerCase().includes(q));
+  if(month) list = list.filter(r=>(r.date||'').startsWith(month));
+  const [sf,sd]=sort.split('_');
+  function dateVal(d) {
+    if(!d) return 0;
+    const s = d.toString().replace(/[^\d\/\.]/g,'').trim();
+    const parts = s.split(/[\/\.]/);
+    if(parts.length>=2) return parseInt(parts[0]||0)*100 + parseInt(parts[1]||0);
+    return 0;
+  }
+  list.sort((a,b)=>{
+    const av = sf==='id_asc'||sf==='id' ? dateVal(a.date) : (a[sf]??(sd==='desc'?-Infinity:Infinity));
+    const bv = sf==='id_asc'||sf==='id' ? dateVal(b.date) : (b[sf]??(sd==='desc'?-Infinity:Infinity));
+    return sd==='desc'?bv-av:av-bv;
+  });
+
+  document.getElementById('s-rows').textContent   = list.length+'건';
+  document.getElementById('s-pay').textContent     = list.reduce((s,r)=>s+r.payment,0).toLocaleString()+'원';
+  document.getElementById('s-labor').textContent   = list.reduce((s,r)=>s+r.laborTotal,0).toLocaleString()+'원';
+  const vm = list.filter(r=>r.salePrice>0&&r.mfgCost>0);
+  document.getElementById('s-margin').textContent  = vm.length ? pct(vm.reduce((s,r)=>s+(r.salePrice-r.mfgCost)/r.salePrice,0)/vm.length) : '—';
+
+  const hasMaster = r => !!lookupMaster(r.product, r.option);
+  const body = document.getElementById('tableBody');
+  if(!list.length){ body.innerHTML='<tr class="empty-row"><td colspan="20">데이터가 없어요 🌼</td></tr>'; return; }
+
+  body.innerHTML = list.map(r=>{
+    const margin = r.salePrice>0&&r.mfgCost>0 ? r.salePrice-r.mfgCost : null;
+    const rate   = margin!==null ? margin/r.salePrice : null;
+    const badge  = rate!==null ? `<span class="badge-margin ${badgeClass(rate)}">${pct(rate)}</span>` : '<span class="td-muted">—</span>';
+    const mtag   = hasMaster(r) ? '<span class="master-tag">마스터</span>' : '';
+    return `<tr>
+      <td class="center">${r.date||'—'}</td>
+      <td class="td-product" title="${r.product}">${r.product||'—'}${mtag}</td>
+      <td class="center">${r.option||'—'}</td>
+      <td class="right">${r.fabric||'—'}</td>
+      <td class="right">${r.mfgQty||'—'}</td>
+      <td class="td-note" title="${r.orderNote||''}">${r.orderNote||'—'}</td>
+      <td class="right">${r.unitPrice?r.unitPrice.toLocaleString():'—'}</td>
+      <td class="right td-payment">${r.payment?r.payment.toLocaleString():'—'}</td>
+      <td class="center">${r.inDate||'—'}</td>
+      <td class="center">${r.inFrom||'—'}</td>
+      <td class="td-note" title="${r.inProduct||''}">${r.inProduct||'—'}</td>
+      <td class="center">${r.inOption||'—'}</td>
+      <td class="right">${r.inQty||'—'}</td>
+      <td class="right">${r.labor?r.labor.toLocaleString():'—'}</td>
+      <td class="right td-auto">${r.laborTotal?r.laborTotal.toLocaleString():'—'}</td>
+      <td class="right td-auto">${r.fabricCostYd?r.fabricCostYd.toLocaleString():'—'}</td>
+      <td class="right">${r.other?r.other.toLocaleString():'—'}</td>
+      <td class="right td-auto" style="font-weight:800">${r.mfgCost?r.mfgCost.toLocaleString():'—'}</td>
+      <td class="right">${r.salePrice?r.salePrice.toLocaleString():'—'}</td>
+      <td class="center" style="white-space:nowrap">${badge} <button class="btn-edit" onclick="openModal(${r.id})">수정</button><button class="btn-del" onclick="askDelete(${r.id},'row')">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+const F = ['date','product','option','fabric','mfgQty','orderNote','unitPrice','payment',
+           'inDate','inFrom','inProduct','inOption','inQty','labor','laborTotal',
+           'fabricCostYd','other','mfgCost','salePrice'];
+
+function buildDatalistOptions() {
+  const products = [...new Set(masters.map(m=>m.product))];
+  document.getElementById('dl-products').innerHTML = products.map(p=>`<option value="${p}">`).join('');
+}
+
+function openModal(id) {
+  editingId = id;
+  buildDatalistOptions();
+  document.getElementById('modalTitle').textContent = id ? '✏️ 행 수정' : '➕ 새 행 추가';
+  document.getElementById('masterMatchBanner').classList.remove('show');
+  const r = id ? recalc(rows.find(x=>x.id===id)) : {};
+  F.forEach(f=>{
+    const el=document.getElementById('f_'+f);
+    if(!el) return;
+    el.value = r[f]!==undefined && r[f]!==0 ? r[f] : '';
+  });
+  // update color datalist
+  updateColorDatalist(r.product||'');
+  autoCalc();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); editingId=null; }
+
+function updateColorDatalist(product) {
+  const colors = masters.filter(m=>m.product.trim()===product.trim()).map(m=>m.color);
+  document.getElementById('dl-colors').innerHTML = colors.map(c=>`<option value="${c}">`).join('');
+}
+
+function onProductChange() {
+  const product = document.getElementById('f_product').value.trim();
+  updateColorDatalist(product);
+  // fabric memory
+  if(fabricMemory[product]) document.getElementById('f_fabric').value = fabricMemory[product];
+  // master lookup (no color yet)
+  const master = lookupMaster(product, document.getElementById('f_option').value.trim());
+  if(master) applyMaster(master);
+  else hideMasterBanner();
+  autoCalc(); updateOrderHint();
+}
+
+function onColorChange() {
+  const product = document.getElementById('f_product').value.trim();
+  const color   = document.getElementById('f_option').value.trim();
+  const master  = lookupMaster(product, color);
+  if(master) applyMaster(master);
+  else { hideMasterBanner(); }
+  autoCalc(); updateOrderHint();
+}
+
+function applyMaster(m) {
+  const set = (id,val) => { if(val!==undefined&&val!=='') document.getElementById(id).value=val; };
+  if(m.vendor||m.fabricName) set('f_orderNote', [m.vendor,m.fabricName].filter(Boolean).join(' '));
+  set('f_unitPrice',  m.unitPrice);
+  set('f_fabric',     m.fabric);
+  set('f_labor',      m.labor);
+  set('f_other',      m.other);
+  set('f_salePrice',  m.salePrice);
+  const cost = calcMasterCost(m);
+  const banner = document.getElementById('masterMatchBanner');
+  banner.innerHTML = `<strong>📚 마스터 자동완성</strong> — ${m.product} · ${m.color||'기본'} &nbsp;|&nbsp; 원단가: <strong>${m.unitPrice?.toLocaleString()}원/y</strong> · 요척: <strong>${m.fabric}y</strong> · 공임: <strong>${m.labor?.toLocaleString()}원</strong> · 최종원가(P): <strong>${cost.toLocaleString()}원</strong>`;
+  banner.classList.add('show');
+  autoCalc(); updateOrderHint();
+}
+function hideMasterBanner(){ document.getElementById('masterMatchBanner').classList.remove('show'); }
+
+function updateOrderHint() {
+  const fab = n(document.getElementById('f_fabric').value);
+  const qty = n(document.getElementById('f_mfgQty').value);
+  const hint = document.getElementById('orderQtyHint');
+  hint.textContent = fab>0&&qty>0 ? `→ 발주수량 약 ${Math.round(fab*qty*10)/10}y 필요` : '';
+}
+
+function autoCalc() {
+  const f={};
+  F.forEach(k=>{ const el=document.getElementById('f_'+k); if(el) f[k]=el.value; });
+  const c=recalc(f);
+  document.getElementById('f_laborTotal').value   = c.laborTotal||'';
+  document.getElementById('f_fabricCostYd').value = c.fabricCostYd||'';
+  document.getElementById('f_mfgCost').value      = c.mfgCost||'';
+
+  const otherPer = n(f.inQty)>0 ? Math.round(n(f.other)/n(f.inQty)) : n(f.other);
+  document.getElementById('calcFlow').innerHTML = `
+    <span class="calc-chip">${n(f.unitPrice).toLocaleString()}원 × ${n(f.fabric)||0}y</span>→
+    <span class="calc-chip auto">원단가 ${c.fabricCostYd.toLocaleString()}원</span>+
+    <span class="calc-chip">공임 ${n(f.labor).toLocaleString()}원</span>+
+    <span class="calc-chip">기타 ${otherPer.toLocaleString()}원</span>→
+    <span class="calc-chip final">제조원가 ${c.mfgCost.toLocaleString()}원</span>`;
+
+  const margin = n(f.salePrice)>0&&c.mfgCost>0 ? n(f.salePrice)-c.mfgCost : null;
+  const rate   = margin!==null ? margin/n(f.salePrice) : null;
+  const prev   = document.getElementById('marginPreview');
+  if(margin!==null){
+    prev.style.display='flex';
+    document.getElementById('pv-margin').textContent = won(margin);
+    document.getElementById('pv-margin').style.color = marginColor(rate);
+    document.getElementById('pv-rate').textContent   = pct(rate);
+    document.getElementById('pv-rate').style.color   = marginColor(rate);
+    document.getElementById('pv-labor').textContent  = won(c.laborTotal);
+  } else prev.style.display='none';
+}
+
+function saveRow() {
+  const f={};
+  F.forEach(k=>{ const el=document.getElementById('f_'+k); if(!el) return; f[k]=el.type==='number'?(parseFloat(el.value)||0):el.value.trim(); });
+  const saved = { ...recalc(f) };
+  if(saved.product&&saved.fabric>0) fabricMemory[saved.product]=saved.fabric;
+  if(editingId){
+    const idx=rows.findIndex(r=>r.id===editingId);
+    rows[idx]={...saved,id:editingId};
+  } else {
+    rows.push({...saved,id:nextRowId++});
+  }
+  saveRows(); buildMemory(); renderMemory(); renderTable(); closeModal();
+}
+
+// ── Delete ─────────────────────────────────────────────────────────
+function askDelete(id,type){ deletingId=id; deletingType=type; document.getElementById('confirmOverlay').classList.add('open'); }
+function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('open'); deletingId=null; }
+function doDelete(){
+  if(deletingType==='row'){
+    rows=rows.filter(r=>r.id!==deletingId);
+    saveRows(); buildMemory(); renderMemory(); renderTable();
+  } else {
+    masters=masters.filter(m=>m.id!==deletingId);
+    saveMasters(); renderMaster();
+  }
+  closeConfirm();
+}
+
+// ── Master CRUD ────────────────────────────────────────────────────
+function renderMaster() {
+  const q = (document.getElementById('masterSearch')?.value||'').toLowerCase();
+  let list = masters;
+  if(q) list = list.filter(m=>m.product.toLowerCase().includes(q)||m.color.toLowerCase().includes(q));
+
+  document.getElementById('masterGrid').innerHTML = list.map(m=>{
+    const cost = calcMasterCost(m);
+    const fab  = Math.round(n(m.unitPrice)*n(m.fabric));
+    const margin = m.salePrice>0&&cost>0 ? m.salePrice-cost : null;
+    const rate   = margin!==null ? margin/m.salePrice : null;
+    return `<div class="master-card">
+      <div><div class="mc-label">제품명 / 컬러</div><div class="mc-value">${m.product}</div><div style="font-size:12px;color:var(--teal);font-weight:600">${m.color||'—'}</div><div style="font-size:11px;color:#aaa;margin-top:2px">${m.size||''}</div></div>
+      <div><div class="mc-label">원단처 / 원단명</div><div class="mc-value">${m.vendor||'—'}</div><div style="font-size:12px;color:#666">${m.fabricName||'—'}</div></div>
+      <div><div class="mc-label">원단가 · 요척</div><div class="mc-value">${n(m.unitPrice).toLocaleString()}원/y</div><div style="font-size:12px;color:#666">×${m.fabric}y = <strong>${fab.toLocaleString()}원/개</strong></div></div>
+      <div><div class="mc-label">공임처 / 공임</div><div class="mc-value">${m.laborVendor||'—'}</div><div style="font-size:12px;color:#666">${n(m.labor).toLocaleString()}원/개</div></div>
+      <div><div class="mc-label">기타비용</div><div class="mc-value">${n(m.other).toLocaleString()}원</div><div style="font-size:11px;color:#aaa">${m.vatApply?'VAT×1.1 적용':'VAT 미적용'}</div></div>
+      <div><div class="mc-label">최종원가(P) → 판매가</div>
+        <div class="mc-auto">${cost.toLocaleString()}원</div>
+        <div style="font-size:12px;color:#444">→ ${n(m.salePrice).toLocaleString()}원 ${rate!==null?`<span style="color:${marginColor(rate)};font-weight:700">(${pct(rate)})</span>`:''}</div>
+      </div>
+      <div class="mc-actions">
+        <button class="btn-edit" onclick="openMasterModal(${m.id})">수정</button>
+        <button class="btn-del" onclick="askDelete(${m.id},'master')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openMasterModal(id) {
+  masterEditId = id;
+  document.getElementById('masterModalTitle').textContent = id ? '✏️ 마스터 수정' : '📚 마스터 추가';
+  const m = id ? masters.find(x=>x.id===id) : {};
+  ['product','color','size','vendor','fabricName','unitPrice','fabric',
+   'laborVendor','labor','other','salePrice'].forEach(f=>{
+    const el=document.getElementById('m_'+f);
+    if(el) el.value = m[f]!==undefined&&m[f]!==0?m[f]:'';
+  });
+  document.getElementById('m_vatApply').value = m.vatApply?'1':'0';
+  calcMasterPreview();
+  document.getElementById('masterOverlay').classList.add('open');
+}
+function closeMasterModal(){ document.getElementById('masterOverlay').classList.remove('open'); masterEditId=null; }
+
+function calcMasterPreview() {
+  const m={
+    unitPrice:n(document.getElementById('m_unitPrice').value),
+    fabric:n(document.getElementById('m_fabric').value),
+    labor:n(document.getElementById('m_labor').value),
+    other:n(document.getElementById('m_other').value),
+    vatApply:document.getElementById('m_vatApply').value==='1',
+    salePrice:n(document.getElementById('m_salePrice').value),
+  };
+  const fab  = Math.round(m.unitPrice*m.fabric);
+  const cost = calcMasterCost(m);
+  const rate = m.salePrice>0&&cost>0 ? (m.salePrice-cost)/m.salePrice : null;
+  const prev = document.getElementById('masterPreview');
+  if(fab>0||cost>0){
+    prev.style.display='flex';
+    document.getElementById('mp-fab').textContent  = won(fab);
+    document.getElementById('mp-cost').textContent = won(cost);
+    document.getElementById('mp-rate').textContent = rate!==null?pct(rate):'—';
+    document.getElementById('mp-rate').style.color = rate!==null?marginColor(rate):'#aaa';
+  } else prev.style.display='none';
+}
+
+function saveMaster() {
+  const m={
+    product:    document.getElementById('m_product').value.trim(),
+    color:      document.getElementById('m_color').value.trim(),
+    size:       document.getElementById('m_size').value.trim(),
+    vendor:     document.getElementById('m_vendor').value.trim(),
+    fabricName: document.getElementById('m_fabricName').value.trim(),
+    unitPrice:  n(document.getElementById('m_unitPrice').value),
+    fabric:     n(document.getElementById('m_fabric').value),
+    laborVendor:document.getElementById('m_laborVendor').value.trim(),
+    labor:      n(document.getElementById('m_labor').value),
+    other:      n(document.getElementById('m_other').value),
+    vatApply:   document.getElementById('m_vatApply').value==='1',
+    salePrice:  n(document.getElementById('m_salePrice').value),
+  };
+  if(!m.product){ alert('제품명을 입력하세요'); return; }
+  if(masterEditId){
+    const idx=masters.findIndex(x=>x.id===masterEditId);
+    masters[idx]={...m,id:masterEditId};
+  } else {
+    masters.push({...m,id:nextMasterId++});
+  }
+  saveMasters(); renderMaster(); closeMasterModal();
+  buildDatalistOptions();
+}
+
+// ── CSV Export ─────────────────────────────────────────────────────
+function exportCSV() {
+  const h=['날짜','제품','옵션','요척','제작수량','발주내용','단가','결제액','입고일','입고처','입고제품','옵션2','입고수량','공임','공임합계','원단가(요척)','기타비용','제조원가','판매가','마진','마진율'];
+  const k=['date','product','option','fabric','mfgQty','orderNote','unitPrice','payment','inDate','inFrom','inProduct','inOption','inQty','labor','laborTotal','fabricCostYd','other','mfgCost','salePrice'];
+  const csv=[h.join(',')];
+  rows.forEach(r=>{
+    const c=recalc(r);
+    const margin=c.salePrice>0&&c.mfgCost>0?c.salePrice-c.mfgCost:'';
+    const rate=margin!==''?(margin/c.salePrice*100).toFixed(1)+'%':'';
+    csv.push([...k.map(f=>`"${(c[f]??'').toString().replace(/"/g,'""')}"`),`"${margin}"`,`"${rate}"`].join(','));
+  });
+  const blob=new Blob(['\uFEFF'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`dear-dilly-원가_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// Close on backdrop
+['modalOverlay','masterOverlay','confirmOverlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    if(e.target.id===id){
+      if(id==='modalOverlay')       closeModal();
+      else if(id==='masterOverlay') closeMasterModal();
+      else                          closeConfirm();
+    }
+  });
+});
+
+// ── Init ──────────────────────────────────────────────────────────
+buildDatalistOptions();
+renderMemory();
+renderTable();
+</script>
+</body>
+</html>
